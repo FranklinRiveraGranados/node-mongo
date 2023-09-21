@@ -1,0 +1,32 @@
+version: '3'
+
+networks:
+  redInterna:
+
+services:
+  mongodb:
+    image: mongo:latest
+    hostname: mongodb
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - redInterna
+    
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: app
+    container_name: node-app
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongodb
+    networks:
+      - redInterna
+
+volumes:
+  mongo-data:
