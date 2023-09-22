@@ -1,0 +1,36 @@
+#version de docker que se esta usando
+version: "3"
+
+#contenedores que se crean
+services:
+  #creamos imagen llamado web
+  web:
+    #creamos contenedor de nombre exampleapp
+    container_name: exampleapp
+    #si en caso ocurre un erro o el contenedor caiga que reinicie todo
+    restart: always
+    #le decimos que construya del archivo actual, con esto va encontrar el Dockerfile
+    build: .
+    #puertos "5000:3000" 5000 es para tu local y el 3000 es para el contenedor
+    ports:
+      - "5000:3000"
+    #tenemos que conecar el contenedor web con el contenedor mongo
+    #le decimo que esta conectado con el servicio mongo
+    links:
+      - mongo
+    #para no estar haciendo build cada vez que se hace un cambio
+    volumes:
+      - .:/usr/src/app
+
+  #creamos la imagen mongo
+  mongo:
+    #le damos nombre a nuestro contenedor
+    container_name: mymongodatabase
+    #decimos la iamgen en la que va estar basado este contenedor
+    image: mongo
+    #internamente funciona en el puerto 27017 pero lo enlazamos en nuestro local con el puerto 27018
+    ports:
+      - "27018:27017"
+    #para evitar que salga los logs del mongo
+    logging:
+      driver: none
