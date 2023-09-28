@@ -1,15 +1,16 @@
 import { Request, Response } from 'express';
-import Prouducts from "../../db/schemas/product"
+//import Prouducts from "../../db/schemas/product"
 import Products from '../../db/schemas/product';
+import { Types } from "mongoose"
 
 //import { products, Product } from '../../data/products';
 
 export const getProducts = async (req: Request, res: Response): Promise<void> => {
-  const itemsPerPage: number = 3;
+  const itemsPerPage: number = 20;
   const page: number = parseInt(req.query.page as string);
   const start = (page - 1) * itemsPerPage;
   const total: number = await Products.count();
-  const end: number = page * itemsPerPage;
+  //const end: number = page * itemsPerPage;
   
   const products = await Products.find().skip(start).limit(itemsPerPage)
 
@@ -21,100 +22,186 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
     data: products,
   });
 };
-/*
-export const getProductById = (req: Request, res: Response): void => {
-  const { productId } = req.params;
-  const index: number = products.findIndex(
-    (item) => item.id === parseInt(productId)
-  );
-  if (index !== -1) {
-    res.send({ data: products[index] });
-  } else {
-    res.status(404).send({});
+
+export const getProductById = async (req: Request, res: Response): Promise <void> => {
+  try{
+    const { productId } = req.params;
+
+    if(!Types.ObjectId.isValid(productId)){
+      throw { code: 400, message: "Invalid id"}
+    }
+  
+    //aca nos retorna todos los datos del usuario
+    //const product = await Products.findById(productId).populate('user') // populate nos regresa tambien datos del usuario
+    
+    //aca le decimos que no queremos que nos retorne el password del usuario
+    const product = await Products.findById(productId).populate({
+      path: 'user',
+      select: {
+        password: 0,
+        __v: 0
+      }
+    })
+
+    if (product) {
+      res.send({ data: product });
+    } else {
+      res.status(404).send({});
+    }
+  }catch(error:any){
+    console.log(error)
+    const statusCode:number = error.code || 500
+
+    res.status(statusCode).send(error.message) //no funciona el e.message
   }
 };
-*/
-export const createProduct = async (req: Request, res: Response): Promise<void> => {
-  const { name, year, description, price, user } = req.body;
-  const product = await Products.create({
-    name,
-    year,
-    description,
-    price,
-    user,
-  })
 
-  res.send(product)
-};
-/*
-export const updateProduct = (req: Request, res: Response): void => {
-  const id: number = parseInt(req.params.productId);
-  const { name, year, color, pantone_value }: Product = req.body;
-  const index: number = products.findIndex((item) => item.id === id);
-  if (index !== -1) {
-    products[index] = {
-      id,
+export const createProduct = async (req: Request, res: Response): Promise<void> => {
+  try{
+    const { name, year, description, price, user } = req.body;
+
+    if(!Types.ObjectId.isValid(user)){
+      throw { code: 400, message: "Invalid id"}
+    }
+    
+    const product = await Products.create({
       name,
       year,
-      color,
-      pantone_value,
-    };
-    res.send({ data: products[index] });
-  } else {
-    res.status(404).send({});
+      description,
+      price,
+      user,
+    })
+
+    res.send(product)
+  }catch(error: any){
+    console.log(error)
+    const statusCode:number = error.code || 500
+
+    res.status(statusCode).send(error.message) //no funciona el e.message
   }
 };
 
-export const partialUpdateProduct = (req: Request, res: Response): void => {
-  const productId: number = parseInt(req.params.productId);
-  const { id, name, year, color, pantone_value }: Product = req.body;
-  const index: number = products.findIndex((item) => item.id === productId);
-  if (index !== -1) {
-    const product = products[index];
+export const updateProduct = async (req: Request, res: Response): Promise <void> => {
+  try{
+    const id: string =  req.params.productId
 
-    products[index] = {
-      id: id || product.id,
-      name: name || product.name,
-      year: year || product.year,
-      color: color || product.color,
-      pantone_value: pantone_value || product.pantone_value,
-    };
+    if(!Types.ObjectId.isValid(id)){
+      throw { code: 400, message: "Invalid id"}
+    }
 
-    res.send({ data: products[index] });
-  } else {
-    res.status(404).send({});
+    const { name, year, description, price, user } = req.body
+
+    const updateProduct = await Products.findByIdAndUpdate(id, {
+      name, 
+      year, 
+      description, 
+      price, 
+      user
+    })
+
+    if (updateProduct) {
+      res.send({ data: "Ok" });
+    } else {
+      res.status(404).send({});
+    }
+  }catch(error: any){
+    console.log(error)
+    const statusCode:number = error.code || 500
+
+    res.status(statusCode).send(error.message) //no funciona el e.message
   }
 };
 
-export const updateProductAndNotify = (req: Request, res: Response): void => {
-  const productId: number = parseInt(req.params.productId);
-  const { client, data } = req.body;
-  const { id, name, year, color, pantone_value }: Product = data;
-  const index: number = products.findIndex((item) => item.id == productId);
-  if (index !== -1) {
-    const product = products[index];
+export const partialUpdateProduct = async (req: Request, res: Response): Promise <void> => {
+  try{
+    const productId = req.params.productId
 
-    products[index] = {
-      id: id || product.id,
-      name: name || product.name,
-      year: year || product.year,
-      color: color || product.color,
-      pantone_value: pantone_value || product.pantone_value,
-    };
+    if(!Types.ObjectId.isValid(productId)){
+      throw { code: 400, message: "Invalid id"}
+    }
 
-    res.send({ data: products[index], message: `Email sent to ${client}` });
-  } else {
-    res.status(404).send({});
+    const { name, year, description, price, user } = req.body;
+    
+    const product = await Products.findByIdAndUpdate(productId)
+  
+    if (product) {
+      product.name = name || product.name
+      product.year = year || product.year
+      product.price = price || product.price
+      product.description = description || product.description
+      product.user = user || product.user
+  
+      await product.save()
+  
+      res.send({ data: product });
+    } else {
+      res.status(404).send({});
+    }
+  }catch(error: any){
+    console.log(error)
+    const statusCode:number = error.code || 500
+
+    res.status(statusCode).send(error.message) //no funciona el e.message
   }
 };
 
-export const deleteProductById = (req: Request, res: Response): void => {
-  const productId: number = parseInt(req.params.productId);
-  const index: number = products.findIndex((item) => item.id === productId);
-  if (index !== -1) {
-    products.splice(index, 1);
-    res.send({});
-  } else {
-    res.status(404).send({});
+export const updateProductAndNotify = async (req: Request, res: Response): Promise <void> => {
+  try{
+    const productId = req.params.productId;
+
+    if(!Types.ObjectId.isValid(productId)){
+      throw { code: 400, message: "Invalid id"}
+    }
+
+    const { client, data } = req.body;
+    const { name, year, description, price, user}= data;
+
+    if(!Types.ObjectId.isValid(user)){
+      throw { code: 400, message: "Invalid id"}
+    }
+    
+    const product = await Products.findById(productId)
+
+    if (product) {
+      product.name = name || product.name
+      product.year = year || product.year
+      product.price = price || product.price
+      product.description = description || product.description
+      product.user = user || product.user
+
+      await product.save()
+  
+      res.send({ data: product, message: `Email sent to ${client}` });
+    } else {
+      res.status(404).send({});
+    }
+  }catch(error: any){
+    console.log(error)
+    const statusCode:number = error.code || 500
+
+    res.status(statusCode).send(error.message) //no funciona el e.message
   }
-};*/
+};
+
+export const deleteProductById = async (req: Request, res: Response): Promise <void> => {
+  try{
+    const productId: string = req.params.productId
+
+    if(!Types.ObjectId.isValid(productId)){
+      throw { code: 400, message: "Invalid id"}
+    }
+
+    const deleted = await Products.deleteOne({_id: productId})
+    
+    if (deleted.deletedCount > 0) {
+      res.send({});
+    } else {
+      res.status(404).send({});
+    }
+  }catch(error: any){
+    console.log(error)
+    const statusCode:number = error.code || 500
+
+    res.status(statusCode).send(error.message) //no funciona el e.message
+  }
+};
