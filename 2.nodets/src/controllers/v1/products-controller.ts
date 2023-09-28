@@ -1,27 +1,27 @@
 import { Request, Response } from 'express';
+import Prouducts from "../../db/schemas/product"
+import Products from '../../db/schemas/product';
 
-import { products, Product } from '../../data/products';
+//import { products, Product } from '../../data/products';
 
-export const getProducts = (req: Request, res: Response): void => {
+export const getProducts = async (req: Request, res: Response): Promise<void> => {
   const itemsPerPage: number = 3;
   const page: number = parseInt(req.query.page as string);
   const start = (page - 1) * itemsPerPage;
-  const total: number = products.length;
+  const total: number = await Products.count();
   const end: number = page * itemsPerPage;
-
-  // console.log("start", start);
-  // console.log("total", total);
-  // console.log("end", end > total ? total : end);
+  
+  const products = await Products.find().skip(start).limit(itemsPerPage)
 
   res.send({
     page: page,
     per_page: itemsPerPage,
     total: total,
     total_pages: Math.ceil(total / itemsPerPage),
-    data: products.slice(start, end),
+    data: products,
   });
 };
-
+/*
 export const getProductById = (req: Request, res: Response): void => {
   const { productId } = req.params;
   const index: number = products.findIndex(
@@ -33,21 +33,20 @@ export const getProductById = (req: Request, res: Response): void => {
     res.status(404).send({});
   }
 };
-
-export const createProduct = (req: Request, res: Response): void => {
-  const { name, year, color, pantone_value }: Product = req.body;
-  const newProduct: Product = {
-    id: products.length + 1,
-    name, // name: name
+*/
+export const createProduct = async (req: Request, res: Response): Promise<void> => {
+  const { name, year, description, price, user } = req.body;
+  const product = await Products.create({
+    name,
     year,
-    color,
-    pantone_value,
-  };
+    description,
+    price,
+    user,
+  })
 
-  products.push(newProduct);
-  res.send(newProduct);
+  res.send(product)
 };
-
+/*
 export const updateProduct = (req: Request, res: Response): void => {
   const id: number = parseInt(req.params.productId);
   const { name, year, color, pantone_value }: Product = req.body;
@@ -118,4 +117,4 @@ export const deleteProductById = (req: Request, res: Response): void => {
   } else {
     res.status(404).send({});
   }
-};
+};*/

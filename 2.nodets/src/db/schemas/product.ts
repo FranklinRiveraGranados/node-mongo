@@ -1,6 +1,23 @@
-import { Schema, Document, model } from "mongoose"
+import { Schema, Document, model, ObjectId } from "mongoose"
+import { User } from "../../data/users"
 
 
-/*const schema = new Schema({
-    name: { required: }
-})*/
+export interface Product extends Document {
+    name: string
+    year: number
+    price?: number | null //signo "?" porque podría ser nulo es decir que no es obligatorio llenar
+    description?:string
+    user: ObjectId | User
+}
+
+const schema = new Schema({
+    name: { type: String, required: true },
+    year: { type: Number, required: true },
+    price: { type: Number, default: 0 },
+    description: String,
+    user: { type: Schema.Types.ObjectId, ref: "user", required: true} //similar a una clave foranea
+})
+
+const Products = model<Product>("product", schema)
+
+export default Products
