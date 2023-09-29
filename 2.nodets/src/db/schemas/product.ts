@@ -1,4 +1,4 @@
-import { Schema, Document, model, ObjectId } from "mongoose"
+import { Schema, Document, model, Types } from "mongoose"
 import { User } from "../../data/users"
 
 
@@ -7,7 +7,7 @@ export interface Product extends Document {
     year: number
     price?: number | null //signo "?" porque podría ser nulo es decir que no es obligatorio llenar
     description?:string
-    user: ObjectId | User
+    user: Types.ObjectId | User
 }
 
 const schema = new Schema({

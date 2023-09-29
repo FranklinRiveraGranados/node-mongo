@@ -6,13 +6,17 @@ import { Types } from "mongoose"
 //import { products, Product } from '../../data/products';
 
 export const getProducts = async (req: Request, res: Response): Promise<void> => {
+
+
   const itemsPerPage: number = 20;
   const page: number = parseInt(req.query.page as string);
   const start = (page - 1) * itemsPerPage;
-  const total: number = await Products.count();
+  const total: number = await Products.count({user: req.session.userId});
   //const end: number = page * itemsPerPage;
   
-  const products = await Products.find().skip(start).limit(itemsPerPage)
+  const products = await Products.find({
+    user: req.session.userId,
+  }).skip(start).limit(itemsPerPage)
 
   res.send({
     page: page,
@@ -35,7 +39,11 @@ export const getProductById = async (req: Request, res: Response): Promise <void
     //const product = await Products.findById(productId).populate('user') // populate nos regresa tambien datos del usuario
     
     //aca le decimos que no queremos que nos retorne el password del usuario
-    const product = await Products.findById(productId).populate({
+    //const product = await Products.findById(productId).populate({
+    const product = await Products.findOne({
+      _id: productId,
+      user: req.session.userId,
+    }).populate({
       path: 'user',
       select: {
         password: 0,
@@ -58,9 +66,13 @@ export const getProductById = async (req: Request, res: Response): Promise <void
 
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try{
-    const { name, year, description, price, user } = req.body;
+    const { userId } = req.session
+    
+    //anterior
+    //const { name, year, description, price, user } = req.body;
+    const { name, year, description, price } = req.body;
 
-    if(!Types.ObjectId.isValid(user)){
+    if(!Types.ObjectId.isValid(userId)){
       throw { code: 400, message: "Invalid id"}
     }
     
@@ -69,7 +81,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       year,
       description,
       price,
-      user,
+      user: userId, 
     })
 
     res.send(product)
@@ -85,18 +97,23 @@ export const updateProduct = async (req: Request, res: Response): Promise <void>
   try{
     const id: string =  req.params.productId
 
-    if(!Types.ObjectId.isValid(id)){
-      throw { code: 400, message: "Invalid id"}
-    }
+    //if(!Types.ObjectId.isValid(id)){
+      //throw { code: 400, message: "Invalid id"}
+    //}
 
-    const { name, year, description, price, user } = req.body
+    const { name, year, description, price } = req.body
 
-    const updateProduct = await Products.findByIdAndUpdate(id, {
+    //const updateProduct = await Products.findByIdAndUpdate(id, {
+    //para que solo el usuario que creo el producto pueda actualizarlo
+    const updateProduct = await Products.findOneAndUpdate({
+      _id: id,
+      user: req.session.userId,
+    }, {  
       name, 
       year, 
       description, 
       price, 
-      user
+      user: req.session.userId
     })
 
     if (updateProduct) {
@@ -116,20 +133,24 @@ export const partialUpdateProduct = async (req: Request, res: Response): Promise
   try{
     const productId = req.params.productId
 
-    if(!Types.ObjectId.isValid(productId)){
-      throw { code: 400, message: "Invalid id"}
-    }
+    //if(!Types.ObjectId.isValid(productId)){
+      //throw { code: 400, message: "Invalid id"}
+    //}
 
-    const { name, year, description, price, user } = req.body;
+    const { name, year, description, price } = req.body;
     
-    const product = await Products.findByIdAndUpdate(productId)
+    //const product = await Products.findByIdAndUpdate(productId)
+    const product = await Products.findOne({
+      _id: productId,
+      user: req.session.userId
+    })
   
     if (product) {
       product.name = name || product.name
       product.year = year || product.year
       product.price = price || product.price
       product.description = description || product.description
-      product.user = user || product.user
+      //product.user = user || product.user
   
       await product.save()
   
@@ -154,20 +175,25 @@ export const updateProductAndNotify = async (req: Request, res: Response): Promi
     }
 
     const { client, data } = req.body;
-    const { name, year, description, price, user}= data;
+    //const { name, year, description, price, user}= data;
+    const { name, year, description, price }= data;
 
-    if(!Types.ObjectId.isValid(user)){
-      throw { code: 400, message: "Invalid id"}
-    }
+    //if(!Types.ObjectId.isValid(user)){
+      //throw { code: 400, message: "Invalid id"}
+    //}
     
-    const product = await Products.findById(productId)
+    //const product = await Products.findById(productId)
+    const product = await Products.findOne({
+      _id: productId,
+      user: req.session.userId
+    })
 
     if (product) {
       product.name = name || product.name
       product.year = year || product.year
       product.price = price || product.price
       product.description = description || product.description
-      product.user = user || product.user
+      //product.user = user || product.user
 
       await product.save()
   
@@ -187,11 +213,15 @@ export const deleteProductById = async (req: Request, res: Response): Promise <v
   try{
     const productId: string = req.params.productId
 
-    if(!Types.ObjectId.isValid(productId)){
-      throw { code: 400, message: "Invalid id"}
-    }
+    //if(!Types.ObjectId.isValid(productId)){
+      //throw { code: 400, message: "Invalid id"}
+    //}
 
-    const deleted = await Products.deleteOne({_id: productId})
+    //const deleted = await Products.deleteOne({_id: productId})
+    const deleted = await Products.deleteOne({
+      _id: productId,
+      user: req.session.userId
+    })
     
     if (deleted.deletedCount > 0) {
       res.send({});
